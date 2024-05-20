@@ -109,10 +109,45 @@ polecenie sprawdzające warstwy utworzonego kontenera
 ![image](https://github.com/miloszpiechota/docker_zadanie_1/assets/161620373/d7091b39-844d-41f3-ab45-bb21b08a2427)
 
 
+# II. Część dodatkowa - Dockerfile2
+
+## wykorzystanie rozszezronego frontendu
+
+```# syntax=docker/dockerfile:1.2```
+
+## Instalowanie zależności serwera, korzystając z mounta cache, co pozwala na wykorzystanie danych cache w trakcie budowania, co powinno przyspieszyć  proces budowania obrazów.
+
+```
+RUN --mount=type=cache,target=/app/client/node_modules npm install
+RUN --mount=type=cache,target=/app/client/build npm run build
+```
+
+##  Budowanie obrazów dla obu architektur arm64 i amd64 
+
+```
+# Zbudowanie obrazu dla architektury linux/amd64
+FROM --platform=linux/amd64 node:16-slim AS amd64
+
+# Zbudowanie obrazu dla architektury linux/arm64
+FROM --platform=linux/arm64 node:16-slim AS arm64
+```
+
+## Wynik działania  programu
+
+To polecenie buduje obraz zgodnie z określonym plikiem Dockerfile, nadaje mu tag i przesyła go do Docker Hub.
+
+```docker buildx build -f Dockerfile2 -t miloszpiechota/myserver:part2 --push .```
+
+![image](https://github.com/miloszpiechota/docker_zadanie_1/assets/161620373/8c7ade54-6d7b-4356-9805-7f64586e700f)
 
 
+Uzyskanie szczegółowych informacji na temat obrazu znajdującego się w rejestrze Docker.
 
+```docker buildx imagetools inspect miloszpiechota/myserver:part2```
 
+![image](https://github.com/miloszpiechota/docker_zadanie_1/assets/161620373/f32bde7b-dbf7-461f-872d-3e90e81dddaf)
+
+![image](https://github.com/miloszpiechota/docker_zadanie_1/assets/161620373/d52aa8be-318e-427c-b05c-5a69d81d31b1)
 
 
    
