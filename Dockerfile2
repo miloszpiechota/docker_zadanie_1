@@ -1,0 +1,58 @@
+# syntax=docker/dockerfile:1.2
+
+# Etap 1: Budowanie aplikacji klienta
+FROM node:16 AS build
+
+LABEL author="MIŁOSZ PIECHOTA"
+
+WORKDIR /app
+
+# Kopiowanie plików projektu do katalogu roboczego
+COPY package.json package-lock.json ./
+COPY client/package.json client/package-lock.json ./client/
+
+# Instalacja zależności serwera
+RUN --mount=type=cache,target=/app/node_modules npm install
+
+# przejście do folderu klienta i instalacja zależności klienta
+WORKDIR /app/client
+COPY client/public ./public
+COPY client/src ./src
+RUN --mount=type=cache,target=/app/client/node_modules npm install
+RUN --mount=type=cache,target=/app/client/build npm run build
+
+# Etap 2: Budowanie obrazu końcowego
+FROM node:16-slim
+
+LABEL author="MIŁOSZ PIECHOTA"
+
+WORKDIR /app
+
+# Kopiowanie zbudowanej aplikacji klienta
+COPY --from=build /app/client/build ./client/build
+
+# Kopiowanie zależności serwera i kodu źródłowego
+COPY package.json package-lock.json ./
+COPY server.js ./
+
+# Instalacja tylko produkcyjnych zależności serwera
+RUN npm install --only=production
+
+# Ustawienie zmiennej środowiskowej na produkcję
+ENV NODE_ENV=production
+
+# Ustawienie punktu wejścia
+ENTRYPOINT ["node", "server.js"]
+
+# Otwarcie portu na serwerze
+EXPOSE 3000
+
+# Healthcheck
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:3000/ || exit 1
+
+# Zbudowanie obrazu dla architektury linux/amd64
+FROM --platform=linux/amd64 node:16-slim AS amd64
+
+# Zbudowanie obrazu dla architektury linux/arm64
+FROM --platform=linux/arm64 node:16-slim AS arm64
